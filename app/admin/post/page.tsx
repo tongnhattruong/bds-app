@@ -9,7 +9,7 @@ import { Property, PropertyCategory, PropertyType } from '../../lib/mock-data';
 import RichTextEditor from '../../../components/RichTextEditor';
 
 function PostPropertyContent() {
-    const { addProperty, updateProperty, getPropertyById, cities, districts } = useBDS();
+    const { addProperty, updateProperty, getPropertyById, cities, districts, fetchAllData } = useBDS();
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get('id');
@@ -90,6 +90,10 @@ function PostPropertyContent() {
             }
         }
     }, [editId, isEditMode, getPropertyById]);
+
+    useEffect(() => {
+        fetchAllData();
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;

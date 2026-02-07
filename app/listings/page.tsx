@@ -23,7 +23,31 @@ const getCachedConfig = unstable_cache(
     { revalidate: 3600 }
 );
 
-export const dynamic = 'force-dynamic'; // Ensure we read fresh searchParams
+const getCachedProperties = unstable_cache(
+    async (where: any) => {
+        return prisma.property.findMany({
+            where: where,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                title: true,
+                price: true,
+                currency: true,
+                area: true,
+                address: true,
+                city: true,
+                type: true,
+                category: true,
+                images: true,
+                createdAt: true
+            }
+        });
+    },
+    ['properties-list'],
+    { revalidate: 60, tags: ['properties'] }
+);
+
+export const dynamic = 'force-dynamic';
 
 export default async function ListingsPage({
     searchParams,
@@ -92,27 +116,10 @@ export default async function ListingsPage({
         where.address = { contains: districtFilterName, mode: 'insensitive' };
     }
 
-    // 4. Fetch Properties (Only hit DB for necessary data)
+    // 4. Fetch Properties (Using Cache)
     let allPropertiesRaw: any[] = [];
     try {
-        allPropertiesRaw = await prisma.property.findMany({
-            where: where,
-            orderBy: { createdAt: 'desc' },
-            // Optional: for better performance, only select needed fields
-            select: {
-                id: true,
-                title: true,
-                price: true,
-                currency: true,
-                area: true,
-                address: true,
-                city: true,
-                type: true,
-                category: true,
-                images: true,
-                createdAt: true
-            }
-        });
+        allPropertiesRaw = await getCachedProperties(where);
     } catch (e) {
         console.error("Database fetch error:", e);
     }

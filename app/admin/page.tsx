@@ -3,9 +3,14 @@
 import Link from 'next/link';
 import { Plus, Trash2, Eye } from 'lucide-react';
 import { useBDS } from '../lib/store';
+import { useEffect } from 'react';
 
 export default function AdminDashboardPage() {
-    const { properties, deleteProperty } = useBDS();
+    const { properties, deleteProperty, fetchAllData } = useBDS();
+
+    useEffect(() => {
+        fetchAllData();
+    }, []);
 
     const handleDelete = (id: string) => {
         if (confirm('Bạn có chắc chắn muốn xóa tin đăng này?')) {

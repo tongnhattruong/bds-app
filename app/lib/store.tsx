@@ -138,6 +138,7 @@ interface BDSContextType {
 
     systemConfig: SystemConfig;
     updateSystemConfig: (config: SystemConfig) => Promise<boolean>;
+    fetchAllData: () => Promise<void>;
     isLoading: boolean;
 }
 
@@ -166,10 +167,17 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetchData();
+        fetchConfig();
     }, []);
 
-    const fetchData = async () => {
+    const fetchConfig = async () => {
+        try {
+            const { data: sys } = await supabase.from('SystemConfig').select('*').eq('id', 'global').maybeSingle();
+            if (sys) setSystemConfig(sys);
+        } catch (e) { console.error(e); } finally { setIsLoading(false); }
+    };
+
+    const fetchAllData = async () => {
         setIsLoading(true);
         try {
             const [
@@ -177,15 +185,13 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
                 { data: cits },
                 { data: dists },
                 { data: nws },
-                { data: pgs },
-                { data: sys }
+                { data: pgs }
             ] = await Promise.all([
                 supabase.from('Property').select('*').order('createdAt', { ascending: false }),
                 supabase.from('City').select('*'),
                 supabase.from('District').select('*'),
                 supabase.from('News').select('*').order('createdAt', { ascending: false }),
-                supabase.from('Page').select('*').order('createdAt', { ascending: false }),
-                supabase.from('SystemConfig').select('*').eq('id', 'global').maybeSingle()
+                supabase.from('Page').select('*').order('createdAt', { ascending: false })
             ]);
 
             if (props) {
@@ -198,7 +204,6 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
             if (dists) setDistricts(dists);
             if (nws) setNews(nws);
             if (pgs) setPages(pgs);
-            if (sys) setSystemConfig(sys);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -212,7 +217,7 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
             images: JSON.stringify(newProperty.images)
         }]);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
@@ -222,14 +227,14 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
             images: JSON.stringify(updatedProperty.images)
         }).eq('id', updatedProperty.id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const deleteProperty = async (id: string) => {
         const { error } = await supabase.from('Property').delete().eq('id', id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
@@ -240,28 +245,28 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     const addCity = async (city: City) => {
         const { error } = await supabase.from('City').insert([city]);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const deleteCity = async (id: string) => {
         const { error } = await supabase.from('City').delete().eq('id', id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const addDistrict = async (district: District) => {
         const { error } = await supabase.from('District').insert([district]);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const deleteDistrict = async (id: string) => {
         const { error } = await supabase.from('District').delete().eq('id', id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
@@ -272,21 +277,21 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     const addNews = async (item: News) => {
         const { error } = await supabase.from('News').insert([item]);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const updateNews = async (updatedItem: News) => {
         const { error } = await supabase.from('News').update(updatedItem).eq('id', updatedItem.id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const deleteNews = async (id: string) => {
         const { error } = await supabase.from('News').delete().eq('id', id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
@@ -302,21 +307,21 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     const addPage = async (page: Page) => {
         const { error } = await supabase.from('Page').insert([page]);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const updatePage = async (page: Page) => {
         const { error } = await supabase.from('Page').update(page).eq('id', page.id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
     const deletePage = async (id: string) => {
         const { error } = await supabase.from('Page').delete().eq('id', id);
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
@@ -330,7 +335,7 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
             ...config
         });
         if (error) return false;
-        fetchData();
+        fetchAllData();
         return true;
     };
 
@@ -374,7 +379,7 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
             cities, districts, addCity, deleteCity, addDistrict, deleteDistrict, getDistrictsByCity,
             news, newsCategories, addNews, updateNews, deleteNews, addNewsCategory, deleteNewsCategory,
             pages, addPage, updatePage, deletePage, getPageBySlug,
-            systemConfig, updateSystemConfig, isLoading
+            systemConfig, updateSystemConfig, fetchAllData, isLoading
         }}>
             {children}
         </BDSContext.Provider>

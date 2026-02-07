@@ -4,10 +4,15 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, Eye, Search, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useBDS } from '../../lib/store';
+import { useEffect } from 'react';
 
 export default function AdminPagesList() {
-    const { pages, deletePage } = useBDS();
+    const { pages, deletePage, fetchAllData } = useBDS();
     const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        fetchAllData();
+    }, []);
 
     const handleDelete = (id: string) => {
         if (confirm('Bạn có chắc chắn muốn xóa trang này không?')) {
