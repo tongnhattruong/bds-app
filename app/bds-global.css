@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Global styles for BDS module */
+/* Add custom overrides here if needed */
+.bds-container {
+  width: 100%;
+}

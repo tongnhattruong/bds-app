@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("POSTGRES_PRISMA_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  title       String
+  price       Float
+  currency    String
+  area        Float
+  address     String
+  city        String
+  type        String   // 'sale' | 'rent'
+  category    String   // 'house' | 'apartment' | 'land' | 'office'
+  description String?
+  images      String   // Stored as JSON string
+  bedrooms    Int?
+  bathrooms   Int?
+  contactName String
+  contactPhone String
+  contactEmail String?
+  youtubeUrl   String?
+  seoTitle     String?
+  seoDescription String?
+  seoKeywords  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model News {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String?  @unique
+  summary         String?
+  content         String?
+  thumbnail       String?
+  categoryId      String?
+  author          String?
+  isPublished     Boolean  @default(true)
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  createdAt       DateTime @default(now())
+}
+
+model Page {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String?  @unique
+  content         String?
+  isPublished     Boolean  @default(true)
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SystemConfig {
+  id            String  @id @default("global")
+  postsPerPage  Int     @default(6)
+  relatedPostsLimit Int @default(3)
+  siteTitle     String?
+  siteDescription String?
+  siteKeywords  String?
+  ogImage       String?
+  headerTitle   String?
+  logoUrl       String?
+  faviconUrl    String?
+  footerAbout   String?
+  footerAddress String?
+  footerEmail   String?
+  footerPhone   String?
+  socialFacebook String?
+  socialZalo    String?
+  socialYoutube String?
+  
+  // Custom Display Config
+  defaultViewMode String @default("list") // 'list' | 'grid'
+  gridColumns     Int    @default(2)      // 2, 3, 4 columns
+}
+
+model City {
+  id   String @id
+  name String
+}
+
+model District {
+  id     String @id
+  name   String
+  cityId String
+}
