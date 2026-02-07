@@ -34,31 +34,17 @@ export default function BDSNavbar() {
                             <span className="font-bold text-xl text-blue-800">{logoText}</span>
                         </Link>
                         <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                            {menuItems.length > 0 ? (
-                                menuItems.map((item) => (
-                                    <Link
-                                        key={item.id}
-                                        href={item.url}
-                                        target={item.target}
-                                        className="inline-flex items-center gap-2 px-1 pt-1 border-b-2 border-transparent hover:border-blue-500 text-sm font-medium text-gray-500 hover:text-blue-600 transition"
-                                    >
-                                        {item.icon && <IconRenderer name={item.icon} className="w-4 h-4" />}
-                                        {item.label}
-                                    </Link>
-                                ))
-                            ) : (
-                                <>
-                                    <Link href="/" className="inline-flex items-center gap-2 px-1 pt-1 border-b-2 border-blue-500 text-sm font-medium text-gray-900">
-                                        <Home className="w-4 h-4" /> Trang chủ
-                                    </Link>
-                                    <Link href="/listings" className="inline-flex items-center gap-2 px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-700">
-                                        <LucideIcons.Tag className="w-4 h-4" /> Mua bán
-                                    </Link>
-                                    <Link href="/listings?type=rent" className="inline-flex items-center gap-2 px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-700">
-                                        <LucideIcons.Key className="w-4 h-4" /> Cho thuê
-                                    </Link>
-                                </>
-                            )}
+                            {menuItems.map((item) => (
+                                <Link
+                                    key={item.id}
+                                    href={item.url}
+                                    target={item.target}
+                                    className="inline-flex items-center gap-2 px-1 pt-1 border-b-2 border-transparent hover:border-blue-500 text-sm font-medium text-gray-500 hover:text-blue-600 transition"
+                                >
+                                    {item.icon && <IconRenderer name={item.icon} className="w-4 h-4" />}
+                                    {item.label}
+                                </Link>
+                            ))}
                         </div>
                     </div>
                     <div className="flex items-center gap-4">

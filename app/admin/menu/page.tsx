@@ -1,27 +1,27 @@
 'use client';
 
 import { useBDS, MenuItem, Page } from '../../lib/store';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Plus, Trash2, GripVertical, Save, ExternalLink,
     Link as LinkIcon, FileText, ChevronUp, ChevronDown,
     Home, Building2, Landmark, Briefcase, Info, Mail, Phone,
-    Search, MapPin, Tag, Edit2, X, Check
+    Search, MapPin, Tag, Edit2, X, Check, HelpCircle, Key, Users, Loader2
 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import * as LucideIcons from 'lucide-react';
 
-const ICON_LIST = [
-    { name: 'Home', icon: Home },
-    { name: 'Building2', icon: Building2 },
-    { name: 'Landmark', icon: Landmark },
-    { name: 'Briefcase', icon: Briefcase },
-    { name: 'Info', icon: Info },
-    { name: 'Mail', icon: Mail },
-    { name: 'Phone', icon: Phone },
-    { name: 'Search', icon: Search },
-    { name: 'MapPin', icon: MapPin },
-    { name: 'Tag', icon: Tag },
+const SUGGESTED_ICONS = [
+    'Home', 'Building2', 'Landmark', 'Briefcase', 'Info', 'Mail', 'Phone',
+    'Search', 'MapPin', 'Tag', 'Key', 'Users', 'FileText', 'Newspaper', 'Settings',
+    'Heart', 'Star', 'Map', 'Compass', 'Layout'
+];
+
+const DEFAULT_MENU_ITEMS: any[] = [
+    { label: 'Trang chủ', url: '/', icon: 'Home', order: 0, target: '_self' },
+    { label: 'Mua bán', url: '/listings', icon: 'Tag', order: 1, target: '_self' },
+    { label: 'Cho thuê', url: '/listings?type=rent', icon: 'Key', order: 2, target: '_self' },
+    { label: 'Tin tức', url: '/news', icon: 'Newspaper', order: 3, target: '_self' }
 ];
 
 export default function MenuAdminPage() {
@@ -29,6 +29,7 @@ export default function MenuAdminPage() {
     const { showToast } = useToast();
     const [localItems, setLocalItems] = useState<MenuItem[]>([]);
     const [isEditingOrder, setIsEditingOrder] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // New item state
     const [newLabel, setNewLabel] = useState('');
@@ -42,9 +43,21 @@ export default function MenuAdminPage() {
     const [editUrl, setEditUrl] = useState('');
     const [editIcon, setEditIcon] = useState('');
 
+    // Icon Search
+    const [iconSearch, setIconSearch] = useState('');
+
     useEffect(() => {
         setLocalItems(menuItems);
     }, [menuItems]);
+
+    const filteredIcons = useMemo(() => {
+        const query = iconSearch.toLowerCase();
+        if (!query) return SUGGESTED_ICONS;
+        return Object.keys(LucideIcons).filter(name =>
+            name.toLowerCase().includes(query) &&
+            typeof (LucideIcons as any)[name] === 'function'
+        ).slice(0, 30);
+    }, [iconSearch]);
 
     const handleAddCustomLink = async () => {
         if (!newLabel || !newUrl) {
@@ -52,6 +65,7 @@ export default function MenuAdminPage() {
             return;
         }
 
+        setIsProcessing(true);
         const newItem: any = {
             label: newLabel,
             url: newUrl,
@@ -60,12 +74,20 @@ export default function MenuAdminPage() {
             target: '_self'
         };
 
-        const success = await addMenuItem(newItem);
-        if (success) {
-            showToast('Đã thêm mục menu', 'success');
-            setNewLabel('');
-            setNewUrl('');
-            setSelectedIcon('Home');
+        try {
+            const success = await addMenuItem(newItem);
+            if (success) {
+                showToast('Đã thêm thành công', 'success');
+                setNewLabel('');
+                setNewUrl('');
+                setSelectedIcon('Home');
+            } else {
+                showToast('Lỗi: Không thể lưu. Có thể bảng MenuItem chưa được tạo trong Database.', 'error');
+            }
+        } catch (e) {
+            showToast('Lỗi kỹ thuật khi kết nối Database', 'error');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -74,6 +96,7 @@ export default function MenuAdminPage() {
         const page = pages.find(p => p.id === selectedPage);
         if (!page) return;
 
+        setIsProcessing(true);
         const newItem: any = {
             label: page.title,
             url: `/${page.slug}`,
@@ -82,32 +105,56 @@ export default function MenuAdminPage() {
             target: '_self'
         };
 
-        const success = await addMenuItem(newItem);
-        if (success) {
-            showToast('Đã thêm trang vào menu', 'success');
-            setSelectedPage('');
+        try {
+            const success = await addMenuItem(newItem);
+            if (success) {
+                showToast('Đã thêm trang thành công', 'success');
+                setSelectedPage('');
+            } else {
+                showToast('Lỗi khi lưu liên kết trang', 'error');
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối', 'error');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     const handleSeedDefaults = async () => {
-        if (confirm('Khởi tạo menu mặc định (Mua bán, Cho thuê, Trang chủ)?')) {
-            const defaults: any[] = [
-                { label: 'Trang chủ', url: '/', icon: 'Home', order: 0, target: '_self' },
-                { label: 'Mua bán', url: '/listings', icon: 'Tag', order: 1, target: '_self' },
-                { label: 'Cho thuê', url: '/listings?type=rent', icon: 'Key', order: 2, target: '_self' }
-            ];
+        if (confirm('Khởi tạo danh sách menu mặc định?')) {
+            setIsProcessing(true);
+            try {
+                let count = 0;
+                for (const item of DEFAULT_MENU_ITEMS) {
+                    const success = await addMenuItem(item);
+                    if (success) count++;
+                }
 
-            for (const item of defaults) {
-                await addMenuItem(item);
+                if (count > 0) {
+                    showToast(`Đã khởi tạo ${count} mục menu thành công`, 'success');
+                    await fetchAllData();
+                } else {
+                    showToast('Lỗi: Không thể khởi tạo menu mặc định. Kiểm tra lại npx prisma db push.', 'error');
+                }
+            } catch (error) {
+                showToast('Có lỗi xảy ra', 'error');
+            } finally {
+                setIsProcessing(false);
             }
-            showToast('Đã khởi tạo menu mặc định', 'success');
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('Bạn có chắc muốn xóa mục này?')) {
+        if (confirm('Xác nhận xóa?')) {
+            setIsProcessing(true);
             const success = await deleteMenuItem(id);
-            if (success) showToast('Đã xóa', 'info');
+            if (success) {
+                showToast('Đã xóa', 'info');
+                await fetchAllData();
+            } else {
+                showToast('Lỗi khi xóa', 'error');
+            }
+            setIsProcessing(false);
         }
     };
 
@@ -123,6 +170,7 @@ export default function MenuAdminPage() {
     };
 
     const saveEdit = async () => {
+        setIsProcessing(true);
         const updatedItems = localItems.map(item =>
             item.id === editingId
                 ? { ...item, label: editLabel, url: editUrl, icon: editIcon }
@@ -130,9 +178,13 @@ export default function MenuAdminPage() {
         );
         const success = await updateMenuItems(updatedItems);
         if (success) {
-            showToast('Đã cập nhật mục menu', 'success');
+            showToast('Đã cập nhật', 'success');
             setEditingId(null);
+            await fetchAllData();
+        } else {
+            showToast('Lỗi khi cập nhật', 'error');
         }
+        setIsProcessing(false);
     };
 
     const moveItem = (index: number, direction: 'up' | 'down') => {
@@ -149,15 +201,20 @@ export default function MenuAdminPage() {
     };
 
     const handleSaveOrder = async () => {
+        setIsProcessing(true);
         const success = await updateMenuItems(localItems);
         if (success) {
-            showToast('Đã lưu thứ tự menu', 'success');
+            showToast('Đã lưu thứ tự', 'success');
             setIsEditingOrder(false);
+            await fetchAllData();
+        } else {
+            showToast('Lỗi khi lưu thứ tự', 'error');
         }
+        setIsProcessing(false);
     };
 
     const IconRenderer = ({ name, className }: { name: string, className?: string }) => {
-        const IconComponent = (LucideIcons as any)[name] || LucideIcons.HelpCircle;
+        const IconComponent = (LucideIcons as any)[name] || HelpCircle;
         return <IconComponent className={className} />;
     };
 
@@ -165,224 +222,279 @@ export default function MenuAdminPage() {
         <div className="p-6 max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Quản lý Menu</h1>
-                    <p className="text-gray-500">Tùy chỉnh thanh điều hướng chính của website</p>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <LucideIcons.Menu className="w-6 h-6 text-blue-600" /> Quản lý Menu
+                    </h1>
+                    <p className="text-gray-500">Chỉnh sửa thanh điều hướng chính của website</p>
                 </div>
                 <div className="flex gap-3">
-                    <button
-                        onClick={handleSeedDefaults}
-                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200 transition"
-                    >
-                        Khởi tạo Menu mặc định
-                    </button>
+                    {localItems.length === 0 && (
+                        <button
+                            onClick={handleSeedDefaults}
+                            disabled={isProcessing}
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-lg disabled:opacity-50"
+                        >
+                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            Khởi tạo Menu Mặc định
+                        </button>
+                    )}
                     {isEditingOrder && (
                         <button
                             onClick={handleSaveOrder}
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-md"
+                            disabled={isProcessing}
+                            className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-green-700 transition shadow-md disabled:opacity-50"
                         >
-                            <Save className="w-4 h-4" /> Lưu thứ tự
+                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Lưu thứ tự
                         </button>
                     )}
                 </div>
             </div>
 
+            {isProcessing && (
+                <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl mb-6 flex items-center gap-3 text-blue-600 font-medium animate-pulse">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Đang xử lý dữ liệu, vui lòng đợi trong giây lát...
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left side: Add elements */}
+                {/* Left side: Add Elements */}
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <FileText className="w-4 h-4 text-blue-600" /> Thêm từ Trang
                         </h2>
                         <select
                             value={selectedPage}
                             onChange={(e) => setSelectedPage(e.target.value)}
-                            className="w-full p-2 border rounded-lg mb-4 text-sm"
+                            disabled={isProcessing}
+                            className="w-full p-2.5 border rounded-xl mb-4 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none border-gray-200 transition disabled:opacity-50"
                         >
-                            <option value="">-- Chọn trang --</option>
+                            <option value="">-- Chọn một trang --</option>
                             {pages.map(page => (
                                 <option key={page.id} value={page.id}>{page.title}</option>
                             ))}
                         </select>
                         <button
                             onClick={handleAddPageLink}
-                            disabled={!selectedPage}
-                            className="w-full bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-bold border border-gray-200 hover:bg-gray-100 transition"
+                            disabled={!selectedPage || isProcessing}
+                            className="w-full bg-blue-50 text-blue-700 py-2.5 rounded-xl text-sm font-bold border border-blue-100 hover:bg-blue-100 transition disabled:opacity-50"
                         >
                             Thêm vào menu
                         </button>
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <LinkIcon className="w-4 h-4 text-blue-600" /> Liên kết tự chọn
+                            <LinkIcon className="w-4 h-4 text-orange-500" /> Liên kết tự chọn
                         </h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">Tên hiển thị</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">Tên hiển thị</label>
                                 <input
                                     type="text"
                                     value={newLabel}
                                     onChange={(e) => setNewLabel(e.target.value)}
-                                    placeholder="Ví dụ: Giới thiệu"
-                                    className="w-full p-2 border rounded-lg text-sm"
+                                    disabled={isProcessing}
+                                    placeholder="Ví dụ: Facebook, TikTok..."
+                                    className="w-full p-2.5 border rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none border-gray-200"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">Đường dẫn (URL)</label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">Đường dẫn (URL)</label>
                                 <input
                                     type="text"
                                     value={newUrl}
                                     onChange={(e) => setNewUrl(e.target.value)}
-                                    placeholder="Ví dụ: /about"
-                                    className="w-full p-2 border rounded-lg text-sm"
+                                    disabled={isProcessing}
+                                    placeholder="Ví dụ: /gioi-thieu"
+                                    className="w-full p-2.5 border rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none border-gray-200"
                                 />
                             </div>
+
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-2 uppercase">Chọn Icon</label>
-                                <div className="grid grid-cols-5 gap-2">
-                                    {ICON_LIST.map(item => (
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Chọn Icon</label>
+                                    <div className="relative">
+                                        <Search className="w-3 h-3 absolute left-2 top-1.5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm..."
+                                            className="pl-6 py-0.5 text-xs border rounded-md outline-none bg-gray-50 w-24"
+                                            value={iconSearch}
+                                            onChange={(e) => setIconSearch(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-200 px-1">
+                                    {filteredIcons.map(name => (
                                         <button
-                                            key={item.name}
-                                            onClick={() => setSelectedIcon(item.name)}
-                                            className={`p-2 rounded border transition ${selectedIcon === item.name ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 hover:bg-gray-50 text-gray-400'}`}
-                                            title={item.name}
+                                            key={name}
+                                            onClick={() => setSelectedIcon(name)}
+                                            disabled={isProcessing}
+                                            className={`p-2 rounded-xl border transition flex flex-col items-center gap-1 ${selectedIcon === name ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm' : 'border-gray-100 hover:bg-gray-50 text-gray-400'}`}
+                                            title={name}
                                         >
-                                            <item.icon className="w-5 h-5 mx-auto" />
+                                            <IconRenderer name={name} className="w-5 h-5" />
                                         </button>
                                     ))}
                                 </div>
                             </div>
+
                             <button
                                 onClick={handleAddCustomLink}
-                                className="w-full bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-bold border border-blue-100 hover:bg-blue-100 transition"
+                                disabled={isProcessing}
+                                className="w-full bg-orange-50 text-orange-700 py-2.5 rounded-xl text-sm font-bold border border-orange-100 hover:bg-orange-100 transition disabled:opacity-50"
                             >
-                                Thêm liên kết
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Thêm vào menu'}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Right side: Menu structure */}
+                {/* Right side: Menu Structure */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
                         <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
-                            <span className="font-bold text-gray-700">Cấu trúc Menu</span>
-                            <span className="text-xs text-gray-500">{localItems.length} mục</span>
+                            <span className="font-bold text-gray-700 flex items-center gap-2">
+                                Danh sách Menu <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] uppercase">{localItems.length}</span>
+                            </span>
                         </div>
 
                         <div className="p-4">
                             {localItems.length === 0 ? (
-                                <div className="py-12 text-center text-gray-400">
-                                    <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Plus className="w-8 h-8" />
+                                <div className="py-20 text-center">
+                                    <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-300">
+                                        <LucideIcons.Layout className="w-12 h-12" />
                                     </div>
-                                    <p>Chưa có mục menu nào. Hãy thêm từ bên trái hoặc Khởi tạo mặc định.</p>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">Chưa có menu nào</h3>
+                                    <p className="text-gray-500 mb-8 max-w-sm mx-auto">Vui lòng thêm các mục từ bên trái hoặc khởi tạo mặc định.</p>
+                                    <button
+                                        onClick={handleSeedDefaults}
+                                        disabled={isProcessing}
+                                        className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-xl mx-auto disabled:opacity-50"
+                                    >
+                                        {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                                        Khởi tạo ngay
+                                    </button>
                                 </div>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {localItems.map((item, index) => (
                                         <div
                                             key={item.id}
-                                            className={`flex items-center gap-4 bg-white border rounded-lg p-3 transition group shadow-sm ${editingId === item.id ? 'border-blue-500 ring-2 ring-blue-100' : 'hover:border-blue-300'}`}
+                                            className={`flex items-center gap-4 bg-white border rounded-2xl p-4 transition-all group shadow-sm ${editingId === item.id ? 'border-blue-500 ring-4 ring-blue-50' : 'hover:border-blue-200'}`}
                                         >
-                                            <div className="text-gray-400 cursor-move">
-                                                <GripVertical className="w-5 h-5" />
+                                            <div className="text-gray-300 group-hover:text-blue-400 transition cursor-move">
+                                                <GripVertical className="w-6 h-6" />
                                             </div>
 
                                             {editingId === item.id ? (
-                                                <div className="flex-1 grid grid-cols-2 gap-3">
-                                                    <input
-                                                        type="text"
-                                                        value={editLabel}
-                                                        onChange={(e) => setEditLabel(e.target.value)}
-                                                        className="p-1 border rounded text-sm font-bold"
-                                                        placeholder="Tên mục"
-                                                    />
-                                                    <input
-                                                        type="text"
-                                                        value={editUrl}
-                                                        onChange={(e) => setEditUrl(e.target.value)}
-                                                        className="p-1 border rounded text-sm"
-                                                        placeholder="URL"
-                                                    />
-                                                    <div className="col-span-2 flex items-center gap-4 py-2 border-t mt-1">
-                                                        <span className="text-xs font-medium text-gray-500">Icon:</span>
-                                                        <div className="flex gap-2 flex-wrap">
-                                                            {ICON_LIST.map(ic => (
+                                                <div className="flex-1 space-y-3">
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Tên mục</label>
+                                                            <input
+                                                                type="text"
+                                                                value={editLabel}
+                                                                onChange={(e) => setEditLabel(e.target.value)}
+                                                                disabled={isProcessing}
+                                                                className="w-full p-2 border rounded-xl text-sm font-bold bg-gray-50 outline-none border-gray-200"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Đường dẫn</label>
+                                                            <input
+                                                                type="text"
+                                                                value={editUrl}
+                                                                onChange={(e) => setEditUrl(e.target.value)}
+                                                                disabled={isProcessing}
+                                                                className="w-full p-2 border rounded-xl text-sm bg-gray-50 outline-none border-gray-200"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="border-t pt-2 flex items-center gap-3">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Icon:</span>
+                                                        <div className="flex gap-1.5 flex-wrap">
+                                                            {SUGGESTED_ICONS.slice(0, 10).map(icName => (
                                                                 <button
-                                                                    key={ic.name}
-                                                                    onClick={() => setEditIcon(ic.name)}
-                                                                    className={`p-1.5 rounded border ${editIcon === ic.name ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-400'}`}
+                                                                    key={icName}
+                                                                    onClick={() => setEditIcon(icName)}
+                                                                    disabled={isProcessing}
+                                                                    className={`p-1.5 rounded-lg border transition ${editIcon === icName ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 text-gray-400 border-gray-100 hover:bg-gray-100'}`}
                                                                 >
-                                                                    <ic.icon className="w-4 h-4" />
+                                                                    <IconRenderer name={icName} className="w-4 h-4" />
                                                                 </button>
                                                             ))}
                                                         </div>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="flex-1 flex items-center gap-3">
-                                                    <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
-                                                        <IconRenderer name={item.icon || 'HelpCircle'} className="w-5 h-5" />
+                                                <div className="flex-1 flex items-center gap-4">
+                                                    <div className="bg-blue-50 p-3 rounded-2xl text-blue-600 shadow-inner group-hover:scale-110 transition">
+                                                        <IconRenderer name={item.icon || 'HelpCircle'} className="w-6 h-6" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-gray-900">{item.label}</p>
-                                                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                                                        <p className="font-bold text-gray-900 leading-tight mb-1">{item.label}</p>
+                                                        <p className="text-xs text-gray-400 flex items-center gap-1 group-hover:text-blue-500 transition">
                                                             <ExternalLink className="w-3 h-3" /> {item.url}
                                                         </p>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-2">
                                                 {editingId === item.id ? (
-                                                    <>
+                                                    <div className="flex gap-1">
                                                         <button
                                                             onClick={saveEdit}
-                                                            className="p-2 bg-green-50 text-green-600 rounded hover:bg-green-100 transition"
-                                                            title="Lưu"
+                                                            disabled={isProcessing}
+                                                            className="p-2.5 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition shadow-sm border border-green-100"
                                                         >
-                                                            <Check className="w-4 h-4" />
+                                                            {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                                                         </button>
                                                         <button
                                                             onClick={cancelEditing}
-                                                            className="p-2 bg-gray-50 text-gray-500 rounded hover:bg-gray-100 transition"
-                                                            title="Hủy"
+                                                            disabled={isProcessing}
+                                                            className="p-2.5 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 transition border border-gray-100"
                                                         >
-                                                            <X className="w-4 h-4" />
+                                                            <X className="w-5 h-5" />
                                                         </button>
-                                                    </>
+                                                    </div>
                                                 ) : (
                                                     <>
                                                         <button
                                                             onClick={() => startEditing(item)}
-                                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                                                            disabled={isProcessing}
+                                                            className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition group/btn border border-transparent hover:border-blue-100"
                                                             title="Chỉnh sửa"
                                                         >
-                                                            <Edit2 className="w-4 h-4" />
+                                                            <Edit2 className="w-5 h-5" />
                                                         </button>
-                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                                        <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-all pointer-events-none group-hover:pointer-events-auto">
                                                             <button
                                                                 onClick={() => moveItem(index, 'up')}
-                                                                className="p-1 hover:bg-gray-100 rounded text-gray-500"
-                                                                disabled={index === 0}
+                                                                className={`p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-blue-600 ${index === 0 ? 'invisible' : ''}`}
+                                                                disabled={isProcessing}
                                                             >
                                                                 <ChevronUp className="w-4 h-4" />
                                                             </button>
                                                             <button
                                                                 onClick={() => moveItem(index, 'down')}
-                                                                className="p-1 hover:bg-gray-100 rounded text-gray-500"
-                                                                disabled={index === localItems.length - 1}
+                                                                className={`p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-blue-600 ${index === localItems.length - 1 ? 'invisible' : ''}`}
+                                                                disabled={isProcessing}
                                                             >
                                                                 <ChevronDown className="w-4 h-4" />
                                                             </button>
                                                         </div>
                                                         <button
                                                             onClick={() => handleDelete(item.id)}
-                                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition ml-2"
+                                                            disabled={isProcessing}
+                                                            className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition border border-transparent hover:border-red-100 ml-1"
                                                             title="Xóa"
                                                         >
-                                                            <Trash2 className="w-4 h-4" />
+                                                            <Trash2 className="w-5 h-5" />
                                                         </button>
                                                     </>
                                                 )}

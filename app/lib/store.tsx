@@ -368,15 +368,25 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addMenuItem = async (item: MenuItem) => {
-        const { error } = await supabase.from('MenuItem').insert([item]);
-        if (error) return false;
+        const newItem = {
+            ...item,
+            id: item.id || crypto.randomUUID()
+        };
+        const { error } = await supabase.from('MenuItem').insert([newItem]);
+        if (error) {
+            console.error('Lỗi thêm MenuItem:', error);
+            return false;
+        }
         fetchAllData();
         return true;
     };
 
     const deleteMenuItem = async (id: string) => {
         const { error } = await supabase.from('MenuItem').delete().eq('id', id);
-        if (error) return false;
+        if (error) {
+            console.error('Lỗi xóa MenuItem:', error);
+            return false;
+        }
         fetchAllData();
         return true;
     };
