@@ -263,31 +263,21 @@ export default function ListingsClient({ initialProperties, cities, districts, s
                             <div key={property.id} className={`bg-white border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition flex ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row h-auto sm:h-52'}`}>
                                 <Link href={`/listings/${property.id}`} className={`${viewMode === 'grid' ? 'aspect-video w-full' : 'w-full sm:w-72 h-52 sm:h-full'} relative flex-shrink-0 group block overflow-hidden`}>
                                     <Image
-                                        src={getOptimizedUrl(property.images[0])}
+                                        src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=100&q=10&auto=format" // Ảnh siêu nhẹ để test (chỉ ~2KB)
                                         alt={property.title}
                                         fill
                                         className="object-cover group-hover:scale-105 transition duration-500"
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        priority={initialProperties.indexOf(property) < 2} // Load top 2 images immediately
+                                        sizes="(max-width: 768px) 100vw, 300px"
+                                        priority={initialProperties.indexOf(property) < 4}
                                     />
-                                    {/* Secondary Image on Hover */}
-                                    {property.images[1] && (
-                                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 group-hover:scale-105">
-                                            <Image
-                                                src={getOptimizedUrl(property.images[1])}
-                                                alt={`${property.title} - view 2`}
-                                                fill
-                                                className="object-cover"
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                            />
-                                        </div>
-                                    )}
+                                    {/* Secondary Image disabled for Ultra Light Test */}
                                     <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
-                                        {property.type === 'sale' ? 'Bán' : 'Cho thuê'}
-                                    </div>
-                                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                                        {property.images.length} ảnh
-                                    </div>
+                                        <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                                            {property.type === 'sale' ? 'Bán' : 'Cho thuê'}
+                                        </div>
+                                        <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                            {property.images.length} ảnh
+                                        </div>
                                 </Link>
 
                                 <div className="p-4 flex flex-col justify-between flex-1">
