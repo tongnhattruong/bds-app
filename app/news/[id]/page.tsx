@@ -33,7 +33,7 @@ const getRelatedNews = unstable_cache(
 const getSystemConfig = unstable_cache(
     async () => prisma.systemConfig.findUnique({ where: { id: 'global' } }),
     ['system-config'],
-    { revalidate: 3600 }
+    { revalidate: 1 }
 );
 
 export default async function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +50,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
 
     const newsItem: News = {
         ...newsItemData,
-        createdAt: newsItemData.createdAt.toLocaleDateString('vi-VN'),
+        createdAt: new Date(newsItemData.createdAt).toLocaleDateString('vi-VN'),
     } as any;
     const categoryName = newsItem.categoryId || 'Tin tức';
 
@@ -61,7 +61,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
     );
     const relatedNews: News[] = relatedRaw.map(n => ({
         ...n,
-        createdAt: n.createdAt.toLocaleDateString('vi-VN'),
+        createdAt: new Date(n.createdAt).toLocaleDateString('vi-VN'),
     })) as any;
 
     return (
@@ -69,6 +69,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
             newsItem={newsItem}
             categoryName={categoryName as any}
             relatedNews={relatedNews}
+            systemConfig={systemConfigData as any}
         />
     );
 }

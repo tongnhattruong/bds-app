@@ -21,7 +21,7 @@ export async function updateSystemConfigAction(data: any) {
             'siteTitle', 'siteDescription', 'siteKeywords', 'ogImage',
             'headerTitle', 'logoUrl', 'faviconUrl',
             'footerAbout', 'footerAddress', 'footerEmail', 'footerPhone',
-            'socialFacebook', 'socialZalo', 'socialYoutube',
+            'socialFacebook', 'socialZalo', 'socialYoutube', 'defaultContactName',
             'defaultViewMode', 'gridColumns'
         ];
 

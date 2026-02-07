@@ -1,6 +1,7 @@
 'use client';
 
 import { useBDS, MenuItem, Page } from '../../lib/store';
+import { supabase } from '../../../utils/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import {
     Plus, Trash2, GripVertical, Save, ExternalLink,
@@ -25,7 +26,7 @@ const DEFAULT_MENU_ITEMS: any[] = [
 ];
 
 export default function MenuAdminPage() {
-    const { menuItems, pages, addMenuItem, deleteMenuItem, updateMenuItems, fetchAllData } = useBDS();
+    const { menuItems, pages, addMenuItem, deleteMenuItem, updateMenuItems, fetchAllData, isLoading } = useBDS();
     const { showToast } = useToast();
     const [localItems, setLocalItems] = useState<MenuItem[]>([]);
     const [isEditingOrder, setIsEditingOrder] = useState(false);
@@ -121,23 +122,45 @@ export default function MenuAdminPage() {
     };
 
     const handleSeedDefaults = async () => {
-        if (confirm('Khởi tạo danh sách menu mặc định?')) {
+        // Cản phá mọi nỗ lực thực thi tự động (SSR hoặc Hydration)
+        if (typeof window === 'undefined') return;
+
+        const hasItems = menuItems.length > 0;
+        const msg = hasItems
+            ? 'Cảnh báo: Bạn đã có menu. Nếu tiếp tục, TOÀN BỘ menu cũ sẽ bị xóa để thay bằng mặc định. Bạn có chắc chắn?'
+            : 'Khởi tạo danh sách menu mặc định?';
+
+        if (window.confirm(msg)) {
             setIsProcessing(true);
             try {
+                // 1. Chỉ thực hiện dọn dẹp nếu người dùng đã xác nhận qua confirm
+                const { error: deleteError } = await supabase.from('MenuItem').delete().neq('id', '_none_');
+
+                if (deleteError) {
+                    showToast('Lỗi khi dọn dẹp menu cũ', 'error');
+                    setIsProcessing(false);
+                    return;
+                }
+
+                // 2. Insert new default items
                 let count = 0;
                 for (const item of DEFAULT_MENU_ITEMS) {
-                    const success = await addMenuItem(item);
+                    const success = await addMenuItem({
+                        ...item,
+                        id: crypto.randomUUID()
+                    });
                     if (success) count++;
                 }
 
                 if (count > 0) {
                     showToast(`Đã khởi tạo ${count} mục menu thành công`, 'success');
-                    await fetchAllData();
+                    // fetchAllData() đã được gọi trong addMenuItem
                 } else {
-                    showToast('Lỗi: Không thể khởi tạo menu mặc định. Kiểm tra lại npx prisma db push.', 'error');
+                    showToast('Lỗi: Không thể khởi tạo menu mới.', 'error');
                 }
             } catch (error) {
-                showToast('Có lỗi xảy ra', 'error');
+                console.error('Seed error:', error);
+                showToast('Có lỗi xảy ra trong quá trình khởi tạo', 'error');
             } finally {
                 setIsProcessing(false);
             }
@@ -228,7 +251,7 @@ export default function MenuAdminPage() {
                     <p className="text-gray-500">Chỉnh sửa thanh điều hướng chính của website</p>
                 </div>
                 <div className="flex gap-3">
-                    {localItems.length === 0 && (
+                    {localItems.length === 0 && !isLoading && (
                         <button
                             onClick={handleSeedDefaults}
                             disabled={isProcessing}
@@ -363,7 +386,12 @@ export default function MenuAdminPage() {
                         </div>
 
                         <div className="p-4">
-                            {localItems.length === 0 ? (
+                            {isLoading ? (
+                                <div className="py-20 text-center">
+                                    <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
+                                    <p className="text-gray-500">Đang tải danh sách menu...</p>
+                                </div>
+                            ) : localItems.length === 0 ? (
                                 <div className="py-20 text-center">
                                     <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-300">
                                         <LucideIcons.Layout className="w-12 h-12" />

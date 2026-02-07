@@ -106,7 +106,7 @@ export default function NewsPage() {
                                     <div className="flex items-center justify-between mt-auto">
                                         <div className="flex items-center gap-4 text-sm text-gray-500">
                                             <span className="flex items-center gap-1">
-                                                <Calendar className="w-4 h-4" /> {featuredNews.createdAt}
+                                                <Calendar className="w-4 h-4" /> {new Date(featuredNews.createdAt).toLocaleDateString('vi-VN')}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <User className="w-4 h-4" /> {featuredNews.author}
@@ -147,7 +147,7 @@ export default function NewsPage() {
                                 </p>
                                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
                                     <span className="text-xs text-gray-400 flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" /> {item.createdAt}
+                                        <Calendar className="w-3 h-3" /> {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                                     </span>
                                     <Link href={`/news/${item.id}`} className="text-sm font-bold text-blue-600 hover:text-blue-800">
                                         Xem chi tiết

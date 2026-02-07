@@ -67,6 +67,7 @@ export interface SystemConfig {
     socialFacebook?: string;
     socialZalo?: string;
     socialYoutube?: string;
+    defaultContactName?: string;
     defaultViewMode?: 'list' | 'grid';
     gridColumns?: number;
 }
@@ -183,15 +184,8 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetchConfig();
+        fetchAllData();
     }, []);
-
-    const fetchConfig = async () => {
-        try {
-            const { data: sys } = await supabase.from('SystemConfig').select('*').eq('id', 'global').maybeSingle();
-            if (sys) setSystemConfig(sys);
-        } catch (e) { console.error(e); } finally { setIsLoading(false); }
-    };
 
     const fetchAllData = async () => {
         setIsLoading(true);
@@ -202,16 +196,22 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
                 { data: dists },
                 { data: nws },
                 { data: pgs },
-                { data: mItems }
+                { data: mItems },
+                { data: sys },
+                { data: nCats }
             ] = await Promise.all([
                 supabase.from('Property').select('*').order('createdAt', { ascending: false }),
                 supabase.from('City').select('*'),
                 supabase.from('District').select('*'),
                 supabase.from('News').select('*').order('createdAt', { ascending: false }),
                 supabase.from('Page').select('*').order('createdAt', { ascending: false }),
-                supabase.from('MenuItem').select('*').order('order', { ascending: true })
+                supabase.from('MenuItem').select('*').order('order', { ascending: true }),
+                supabase.from('SystemConfig').select('*').eq('id', 'global').maybeSingle(),
+                supabase.from('NewsCategory').select('*').order('createdAt', { ascending: true })
             ]);
 
+            if (sys) setSystemConfig(sys);
+            if (nCats) setNewsCategories(nCats);
             if (props) {
                 setProperties(props.map((p: any) => ({
                     ...p,
@@ -315,12 +315,23 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addNewsCategory = async (category: NewsCategory) => {
-        // NewsCategory is not in schema yet, but can be added if needed
-        return false;
+        const { error } = await supabase.from('NewsCategory').insert([category]);
+        if (error) {
+            console.error('Lỗi thêm NewsCategory:', error);
+            return false;
+        }
+        fetchAllData();
+        return true;
     };
 
     const deleteNewsCategory = async (id: string) => {
-        return false;
+        const { error } = await supabase.from('NewsCategory').delete().eq('id', id);
+        if (error) {
+            console.error('Lỗi xóa NewsCategory:', error);
+            return false;
+        }
+        fetchAllData();
+        return true;
     };
 
     const addPage = async (page: Page) => {

@@ -31,7 +31,7 @@ export default async function BDSPage() {
     const featuredProperties: Property[] = featuredData.map(p => ({
         ...p,
         images: typeof p.images === 'string' ? JSON.parse(p.images) : (p.images || []),
-        createdAt: p.createdAt.toLocaleDateString('vi-VN')
+        createdAt: new Date(p.createdAt).toLocaleDateString('vi-VN')
     })) as any;
 
     const cities: City[] = citiesData as any;

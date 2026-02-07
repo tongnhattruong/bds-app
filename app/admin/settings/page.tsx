@@ -9,9 +9,9 @@ import { useBDS, SystemConfig } from '../../lib/store';
 import { clearCache, updateSystemConfigAction } from '../../lib/actions';
 
 export default function AdminSettingsPage() {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const { showToast } = useToast();
-    const { systemConfig, updateSystemConfig } = useBDS();
+    const { systemConfig } = useBDS();
 
     // Tab state: 'profile' | 'password' | 'config'
     const [activeTab, setActiveTab] = useState('profile');
@@ -64,6 +64,12 @@ export default function AdminSettingsPage() {
     const handleProfileSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         localStorage.setItem('bds_admin_profile', JSON.stringify(profileData));
+
+        // Cập nhật vào AuthContext để các trang khác (như News) nhận được tên mới
+        if (user) {
+            updateUser(user.id, { name: profileData.displayName });
+        }
+
         showToast('Cập nhật thông tin hồ sơ thành công!', 'success');
     };
 
@@ -84,9 +90,6 @@ export default function AdminSettingsPage() {
 
     const handleConfigSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Save Site Info
-        localStorage.setItem('bds_site_config', JSON.stringify(siteConfig));
 
         // Save System Config to DB via Server Action
         const res = await updateSystemConfigAction(sysConfigData as any);
@@ -260,33 +263,66 @@ export default function AdminSettingsPage() {
                             <form onSubmit={handleConfigSubmit}>
                                 <div className="space-y-6">
                                     {/* System Config Section */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tên Website</label>
-                                        <input
-                                            type="text"
-                                            value={siteConfig.siteName}
-                                            onChange={(e) => setSiteConfig({ ...siteConfig, siteName: e.target.value })}
-                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        />
-                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email liên hệ chung</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Tên Website (SEO Title)</label>
                                             <input
-                                                type="email"
-                                                value={siteConfig.contactEmail}
-                                                onChange={(e) => setSiteConfig({ ...siteConfig, contactEmail: e.target.value })}
+                                                type="text"
+                                                value={sysConfigData.siteTitle || ''}
+                                                onChange={(e) => setSysConfigData({ ...sysConfigData, siteTitle: e.target.value })}
                                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                placeholder="Bất Động Sản Demo"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Hotline</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Tên hiển thị Header (Logo Text)</label>
                                             <input
                                                 type="text"
-                                                value={siteConfig.hotline}
-                                                onChange={(e) => setSiteConfig({ ...siteConfig, hotline: e.target.value })}
+                                                value={sysConfigData.headerTitle || ''}
+                                                onChange={(e) => setSysConfigData({ ...sysConfigData, headerTitle: e.target.value })}
                                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                placeholder="BDS APP"
                                             />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100">
+                                        <h3 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                            <User className="w-4 h-4 text-blue-600" /> Thông tin liên hệ mặc định cho tin đăng
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mb-4">Các thông tin này sẽ được tự động điền khi bác đăng tin bất động sản mới.</p>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên liên hệ mặc định</label>
+                                                <input
+                                                    type="text"
+                                                    value={sysConfigData.defaultContactName || ''}
+                                                    onChange={(e) => setSysConfigData({ ...sysConfigData, defaultContactName: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    placeholder="VD: Nguyễn Văn A"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Hotline mặc định</label>
+                                                <input
+                                                    type="text"
+                                                    value={sysConfigData.footerPhone || ''}
+                                                    onChange={(e) => setSysConfigData({ ...sysConfigData, footerPhone: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    placeholder="0968xxxxxx"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Email mặc định</label>
+                                                <input
+                                                    type="email"
+                                                    value={sysConfigData.footerEmail || ''}
+                                                    onChange={(e) => setSysConfigData({ ...sysConfigData, footerEmail: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    placeholder="abc@gmail.com"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 

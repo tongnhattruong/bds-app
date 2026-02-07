@@ -1,17 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
+import { Calendar, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin, Edit } from 'lucide-react';
 import SEOHead from '../components/SEOHead';
 import { News, NewsCategory, SystemConfig } from '../lib/store';
+import { useAuth } from '../lib/auth';
 
 interface NewsDetailClientProps {
     newsItem: News;
     categoryName: string;
     relatedNews: News[];
+    systemConfig?: SystemConfig;
 }
 
-export default function NewsDetailClient({ newsItem, categoryName, relatedNews }: NewsDetailClientProps) {
+export default function NewsDetailClient({ newsItem, categoryName, relatedNews, systemConfig }: NewsDetailClientProps) {
+    const { isAdmin, user } = useAuth();
+
+    // Logic hiển thị Tên người đăng:
+    // 1. Nếu bác đang đăng nhập: Hiện tên trong Hồ sơ của bác (displayName)
+    // 2. Nếu là khách xem: Hiện Tên liên hệ mặc định trong Cấu hình website
+    // 3. Cuối cùng mới hiện 'Ban Biên Tập'
+    const authorName = user?.name || systemConfig?.defaultContactName || 'Ban Biên Tập';
+
     return (
         <div className="bg-white min-h-screen pb-12">
             <SEOHead
@@ -33,13 +43,24 @@ export default function NewsDetailClient({ newsItem, categoryName, relatedNews }
                         <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-6 text-shadow-lg">
                             {newsItem.title}
                         </h1>
-                        <div className="flex items-center justify-center gap-6 text-sm md:text-base font-medium">
-                            <span className="flex items-center gap-2">
-                                <User className="w-5 h-5" /> {newsItem.author}
-                            </span>
-                            <span className="flex items-center gap-2">
-                                <Calendar className="w-5 h-5" /> {newsItem.createdAt}
-                            </span>
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-sm md:text-base font-medium">
+                            <div className="flex items-center gap-6">
+                                <span className="flex items-center gap-2">
+                                    <User className="w-5 h-5 text-blue-300" /> {authorName}
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <Calendar className="w-5 h-5 text-blue-300" /> {newsItem.createdAt}
+                                </span>
+                            </div>
+
+                            {isAdmin && (
+                                <Link
+                                    href={`/admin/news/post?id=${newsItem.id}`}
+                                    className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-1.5 rounded-full flex items-center gap-2 transition font-bold text-sm shadow-lg"
+                                >
+                                    <Edit className="w-4 h-4" /> Chỉnh sửa bài viết
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </div>

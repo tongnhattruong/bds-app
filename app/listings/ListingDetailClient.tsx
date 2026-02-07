@@ -243,16 +243,112 @@ export default function ListingDetailClient({ property, relatedProperties, syste
                 </div>
 
                 <div className="lg:col-span-1">
-                    <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 sticky top-24">
+                    <div className="bg-white p-6 rounded-2xl shadow-xl border border-blue-100 sticky top-24">
                         <div className="flex items-center gap-4 mb-6 pb-6 border-b">
-                            <div className="bg-blue-100 w-14 h-14 rounded-full flex items-center justify-center border-2 border-white shadow-sm filter"><User className="w-7 h-7 text-blue-600" /></div>
+                            <div className="bg-blue-100 w-14 h-14 rounded-full flex items-center justify-center border-2 border-white shadow-sm"><User className="w-7 h-7 text-blue-600" /></div>
                             <div>
                                 <p className="text-xs text-gray-500 uppercase font-semibold">Được đăng bởi</p>
                                 <p className="font-bold text-lg text-gray-900">{property.contactName}</p>
                             </div>
                         </div>
-                        <a href={`tel:${property.contactPhone}`} className="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 mb-3 hover:bg-green-700 transition shadow-md"><Phone className="w-5 h-5" /> {property.contactPhone}</a>
-                        <a href={`mailto:${property.contactEmail || 'contact@bds.com'}`} className="w-full bg-white text-blue-600 border-2 border-blue-600 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-50 transition mb-6"><Mail className="w-5 h-5" /> Gửi email</a>
+
+                        <div className="space-y-4">
+                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                <Mail className="w-4 h-4 text-blue-600" /> Gửi yêu cầu tư vấn
+                            </h3>
+
+                            <form
+                                onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    const form = e.target as HTMLFormElement;
+                                    const data = new FormData(form);
+
+                                    const payload = {
+                                        to: property.contactEmail || 'contact@bds.com',
+                                        propertyTitle: property.title,
+                                        propertyLink: typeof window !== 'undefined' ? window.location.href : '',
+                                        customerName: data.get('name'),
+                                        customerPhone: data.get('phone'),
+                                        customerEmail: data.get('email'),
+                                        message: data.get('message')
+                                    };
+
+                                    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+                                    if (submitBtn) submitBtn.disabled = true;
+
+                                    try {
+                                        const res = await fetch('/api/contact', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(payload)
+                                        });
+
+                                        if (res.ok) {
+                                            showToast('Đã gửi yêu cầu thành công! Chúng tôi sẽ liên hệ lại sớm.', 'success');
+                                            form.reset();
+                                        } else {
+                                            showToast('Lỗi khi gửi yêu cầu. Vui lòng thử lại.', 'error');
+                                        }
+                                    } catch (err) {
+                                        showToast('Có lỗi kỹ thuật xảy ra', 'error');
+                                    } finally {
+                                        if (submitBtn) submitBtn.disabled = false;
+                                    }
+                                }}
+                                className="space-y-3"
+                            >
+                                <div>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        required
+                                        placeholder="Họ và tên *"
+                                        className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none border-gray-100"
+                                    />
+                                </div>
+                                <div>
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        required
+                                        placeholder="Số điện thoại *"
+                                        className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none border-gray-100"
+                                    />
+                                </div>
+                                <div>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        placeholder="Email (không bắt buộc)"
+                                        className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none border-gray-100"
+                                    />
+                                </div>
+                                <div>
+                                    <textarea
+                                        name="message"
+                                        rows={3}
+                                        placeholder="Tôi quan tâm đến bất động sản này. Vui lòng tư vấn cho tôi."
+                                        className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none border-gray-100 resize-none"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition shadow-md disabled:opacity-50"
+                                >
+                                    <Mail className="w-5 h-5" /> Gửi yêu cầu ngay
+                                </button>
+                            </form>
+
+                            <div className="pt-4 border-t border-dashed flex flex-col gap-2">
+                                <p className="text-xs text-center text-gray-400 font-medium">Hoặc liên hệ Hotline</p>
+                                <a
+                                    href={`tel:${property.contactPhone}`}
+                                    className="w-full bg-green-50 text-green-600 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-green-100 transition border border-green-100"
+                                >
+                                    <Phone className="w-5 h-5" /> {property.contactPhone}
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

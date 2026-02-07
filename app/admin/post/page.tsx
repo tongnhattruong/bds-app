@@ -9,7 +9,7 @@ import { Property, PropertyCategory, PropertyType } from '../../lib/mock-data';
 import RichTextEditor from '../../../components/RichTextEditor';
 
 function PostPropertyContent() {
-    const { addProperty, updateProperty, getPropertyById, cities, districts, fetchAllData } = useBDS();
+    const { addProperty, updateProperty, getPropertyById, cities, districts, fetchAllData, systemConfig } = useBDS();
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get('id');
@@ -69,27 +69,15 @@ function PostPropertyContent() {
                 });
             }
         } else {
-            // NEW POST MODE: Load default contact info from Admin Profile (localStorage)
-            const savedProfile = localStorage.getItem('bds_admin_profile');
-            if (savedProfile) {
-                const profile = JSON.parse(savedProfile);
-                setFormData(prev => ({
-                    ...prev,
-                    contactName: profile.displayName || 'Admin',
-                    contactPhone: profile.phone || '0909000111',
-                    contactEmail: profile.email || 'admin@bds.com'
-                }));
-            } else {
-                // Fallback defaults if no profile set
-                setFormData(prev => ({
-                    ...prev,
-                    contactName: 'Admin',
-                    contactPhone: '0909000111',
-                    contactEmail: 'admin@bds.com'
-                }));
-            }
+            // NEW POST MODE: Load default contact info from System Configuration (Database)
+            setFormData(prev => ({
+                ...prev,
+                contactName: systemConfig.defaultContactName || 'Admin',
+                contactPhone: systemConfig.footerPhone || '0909000111',
+                contactEmail: systemConfig.footerEmail || 'admin@bds.com'
+            }));
         }
-    }, [editId, isEditMode, getPropertyById]);
+    }, [editId, isEditMode, getPropertyById, systemConfig]);
 
     useEffect(() => {
         fetchAllData();

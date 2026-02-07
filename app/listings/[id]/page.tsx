@@ -78,7 +78,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     const property: Property = {
         ...propertyData,
         images: typeof propertyData.images === 'string' ? JSON.parse(propertyData.images) : (propertyData.images || []),
-        createdAt: propertyData.createdAt.toLocaleDateString('vi-VN'),
+        createdAt: new Date(propertyData.createdAt).toLocaleDateString('vi-VN'),
     } as any;
 
     const relatedRaw = await getRelatedProperties(
@@ -91,7 +91,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     const relatedProperties: Property[] = relatedRaw.map(p => ({
         ...p,
         images: typeof p.images === 'string' ? JSON.parse(p.images) : (p.images || []),
-        createdAt: p.createdAt.toLocaleDateString('vi-VN'),
+        createdAt: new Date(p.createdAt).toLocaleDateString('vi-VN'),
     })) as any;
 
     return (
