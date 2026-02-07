@@ -48,7 +48,10 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
         notFound();
     }
 
-    const newsItem: News = newsItemData as any;
+    const newsItem: News = {
+        ...newsItemData,
+        createdAt: newsItemData.createdAt.toLocaleDateString('vi-VN'),
+    } as any;
     const categoryName = newsItem.categoryId || 'Tin tức';
 
     const relatedRaw = await getRelatedNews(
@@ -56,7 +59,10 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
         newsItem.id,
         systemConfigData?.relatedPostsLimit || 3
     );
-    const relatedNews: News[] = relatedRaw as any;
+    const relatedNews: News[] = relatedRaw.map(n => ({
+        ...n,
+        createdAt: n.createdAt.toLocaleDateString('vi-VN'),
+    })) as any;
 
     return (
         <NewsDetailClient

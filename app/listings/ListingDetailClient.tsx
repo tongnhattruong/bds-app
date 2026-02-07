@@ -93,7 +93,6 @@ export default function ListingDetailClient({ property, relatedProperties, syste
                 description={property.seoDescription || property.description}
                 keywords={property.seoKeywords}
                 image={property.images[0]}
-                url={typeof window !== 'undefined' ? window.location.href : ''}
             />
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
