@@ -23,22 +23,23 @@ export default async function ListingsPage({
     const districtId = typeof resolvedSearchParams?.district === 'string' ? resolvedSearchParams.district : '';
     const sort = typeof resolvedSearchParams?.sort === 'string' ? resolvedSearchParams.sort : 'newest';
 
-    // Fetch master data
+    // Fetch master data with error handling
     let allCities: any[] = [];
     let allDistricts: any[] = [];
     let systemConfigData: any = null;
 
     try {
-        const [cities, districts, configs] = await Promise.all([
+        // Fetch cities, districts, and config in parallel
+        const [cities, districts, config] = await Promise.all([
             prisma.city.findMany(),
             prisma.district.findMany(),
-            prisma.$queryRaw<any[]>`SELECT * FROM "SystemConfig" WHERE "id" = 'global'`.catch(() => [])
+            prisma.systemConfig.findUnique({ where: { id: 'global' } })
         ]);
         allCities = cities;
         allDistricts = districts;
-        systemConfigData = configs[0] || null;
+        systemConfigData = config;
     } catch (error) {
-        console.error("Database connection error:", error);
+        console.error("Database fetch error:", error);
     }
 
     const systemConfig: SystemConfig = systemConfigData ? {
@@ -139,6 +140,9 @@ export default async function ListingsPage({
                 title="Mua bán nhà đất, bất động sản chính chủ - Giá tốt"
                 description="Tìm mua nhà đất, căn hộ, đất nền giá rẻ, chính chủ."
             />
+            <div className="bg-yellow-100 text-yellow-800 p-2 text-center text-sm font-bold mb-4 rounded">
+                🚀 Test Sync: Dự án đã được đồng bộ từ GitHub sang Vercel thành công!
+            </div>
             <ListingsClient
                 initialProperties={currentProperties}
                 cities={allCities}
