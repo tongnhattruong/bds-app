@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { MapPin, Filter, ChevronDown, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -14,6 +15,15 @@ interface ListingsClientProps {
     currentPage: number;
     totalPages: number;
 }
+
+// Helper to optimize Unsplash URLs
+const getOptimizedUrl = (url: string, width = 600) => {
+    if (url.includes('unsplash.com')) {
+        const baseUrl = url.split('?')[0];
+        return `${baseUrl}?auto=format&fit=crop&q=75&w=${width}`;
+    }
+    return url;
+};
 
 export default function ListingsClient({ initialProperties, cities, districts, systemConfig, currentPage, totalPages }: ListingsClientProps) {
     const router = useRouter();
@@ -252,18 +262,25 @@ export default function ListingsClient({ initialProperties, cities, districts, s
                         {initialProperties.map((property) => (
                             <div key={property.id} className={`bg-white border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition flex ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row h-auto sm:h-52'}`}>
                                 <Link href={`/listings/${property.id}`} className={`${viewMode === 'grid' ? 'aspect-video w-full' : 'w-full sm:w-72 h-52 sm:h-full'} relative flex-shrink-0 group block overflow-hidden`}>
-                                    <img
-                                        src={property.images[0]}
+                                    <Image
+                                        src={getOptimizedUrl(property.images[0])}
                                         alt={property.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                        fill
+                                        className="object-cover group-hover:scale-105 transition duration-500"
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        priority={initialProperties.indexOf(property) < 2} // Load top 2 images immediately
                                     />
                                     {/* Secondary Image on Hover */}
                                     {property.images[1] && (
-                                        <img
-                                            src={property.images[1]}
-                                            alt={`${property.title} - view 2`}
-                                            className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition duration-500 group-hover:scale-105"
-                                        />
+                                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 group-hover:scale-105">
+                                            <Image
+                                                src={getOptimizedUrl(property.images[1])}
+                                                alt={`${property.title} - view 2`}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                            />
+                                        </div>
                                     )}
                                     <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
                                         {property.type === 'sale' ? 'Bán' : 'Cho thuê'}
