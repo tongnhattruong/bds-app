@@ -50,9 +50,24 @@ export default async function ListingsPage({
     ]);
 
     const systemConfig: SystemConfig = systemConfigData ? {
-        postsPerPage: systemConfigData.postsPerPage || 6,
-        relatedPostsLimit: systemConfigData.relatedPostsLimit || 3,
-        ...systemConfigData
+        postsPerPage: systemConfigData.postsPerPage ?? 6,
+        relatedPostsLimit: systemConfigData.relatedPostsLimit ?? 3,
+        siteTitle: systemConfigData.siteTitle ?? undefined,
+        siteDescription: systemConfigData.siteDescription ?? undefined,
+        siteKeywords: systemConfigData.siteKeywords ?? undefined,
+        ogImage: systemConfigData.ogImage ?? undefined,
+        headerTitle: systemConfigData.headerTitle ?? undefined,
+        logoUrl: systemConfigData.logoUrl ?? undefined,
+        faviconUrl: systemConfigData.faviconUrl ?? undefined,
+        footerAbout: systemConfigData.footerAbout ?? undefined,
+        footerAddress: systemConfigData.footerAddress ?? undefined,
+        footerEmail: systemConfigData.footerEmail ?? undefined,
+        footerPhone: systemConfigData.footerPhone ?? undefined,
+        socialFacebook: systemConfigData.socialFacebook ?? undefined,
+        socialZalo: systemConfigData.socialZalo ?? undefined,
+        socialYoutube: systemConfigData.socialYoutube ?? undefined,
+        defaultViewMode: (systemConfigData.defaultViewMode as any) ?? undefined,
+        gridColumns: systemConfigData.gridColumns ?? undefined,
     } : {
         postsPerPage: 6,
         relatedPostsLimit: 3
