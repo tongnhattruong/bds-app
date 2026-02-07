@@ -100,6 +100,7 @@ model MenuItem {
   id        String   @id @default(cuid())
   label     String
   url       String
+  icon      String?  // Lucide icon name
   order     Int      @default(0)
   target    String   @default("_self") // '_self' or '_blank'
   createdAt DateTime @default(now())
