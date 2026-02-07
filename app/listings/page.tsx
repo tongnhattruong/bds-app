@@ -24,81 +24,82 @@ export default async function ListingsPage({
     const sort = typeof resolvedSearchParams?.sort === 'string' ? resolvedSearchParams.sort : 'newest';
 
     // Fetch master data
-    // Use Promise.all for concurrency
-    // Use Raw Query to fetch config because Prisma Client might be outdated during dev (missing new fields)
-    const [allCities, allDistricts, systemConfigs] = await Promise.all([
-        prisma.city.findMany(),
-        prisma.district.findMany(),
-        prisma.$queryRaw<any[]>`SELECT * FROM "SystemConfig" WHERE "id" = 'global'`
-    ]);
+    let allCities: any[] = [];
+    let allDistricts: any[] = [];
+    let systemConfigData: any = null;
 
-    // queryRaw returns an array
-    const systemConfigData = systemConfigs[0] || null;
+    try {
+        const [cities, districts, configs] = await Promise.all([
+            prisma.city.findMany(),
+            prisma.district.findMany(),
+            prisma.$queryRaw<any[]>`SELECT * FROM "SystemConfig" WHERE "id" = 'global'`.catch(() => [])
+        ]);
+        allCities = cities;
+        allDistricts = districts;
+        systemConfigData = configs[0] || null;
+    } catch (error) {
+        console.error("Database connection error:", error);
+    }
 
-    // Map system config to our interface type (or use default)
     const systemConfig: SystemConfig = systemConfigData ? {
-        postsPerPage: systemConfigData.postsPerPage,
-        relatedPostsLimit: systemConfigData.relatedPostsLimit,
+        postsPerPage: systemConfigData.postsPerPage || 6,
+        relatedPostsLimit: systemConfigData.relatedPostsLimit || 3,
         ...systemConfigData
     } : {
         postsPerPage: 6,
         relatedPostsLimit: 3
     };
 
-    // Prepare Filter Logic
-    // We need to resolve City ID -> Name and District ID -> Name because Property table stores Names
     const cityFilterName = cityId ? allCities.find((c: any) => c.id === cityId)?.name : '';
     const districtFilterName = districtId ? allDistricts.find((d: any) => d.id === districtId)?.name : '';
 
-    // Fetch Properties
-    // Ideally we filter in DB. 
-    // But 'price' requires complex logic (currency conversion).
-    // And 'city'/'district' in Property are free-text or names, while we have IDS.
-    // Let's fetch ALL for now (assuming dataset < 1000 items) and filter in memory.
-    // If dataset grows, we MUST normalize Property schema to use cityId/districtId.
-    const allPropertiesRaw = await prisma.property.findMany({
-        orderBy: { createdAt: 'desc' }
-    });
+    // Prepare DB Filter Object
+    const where: any = {};
+    if (type !== 'all') where.type = { equals: type, mode: 'insensitive' };
+    if (category !== 'all') where.category = { equals: category, mode: 'insensitive' };
 
-    // Transform to Interface format (images JSON parsing)
-    const allProperties: Property[] = allPropertiesRaw.map((p: any) => {
+    // City and District are tricky because they are stored as strings/names
+    if (cityFilterName) {
+        where.city = { contains: cityFilterName, mode: 'insensitive' };
+    }
+
+    // District fuzzy search 
+    if (districtFilterName) {
+        where.address = { contains: districtFilterName, mode: 'insensitive' };
+    }
+
+    // Fetch filtered properties directly from DB
+    let allPropertiesRaw: any[] = [];
+    try {
+        allPropertiesRaw = await prisma.property.findMany({
+            where: where,
+            orderBy: { createdAt: 'desc' }
+        });
+    } catch (e) {
+        console.error("Error fetching properties from Database:", e);
+    }
+
+    // Transform and parse images
+    let filtered = allPropertiesRaw.map((p: any) => {
         let parsedImages = [];
         try {
             parsedImages = p.images ? JSON.parse(p.images) : [];
-            if (!Array.isArray(parsedImages)) parsedImages = [];
         } catch (e) {
             console.error(`Error parsing images for property ${p.id}:`, e);
-            parsedImages = [];
         }
 
         return {
             ...p,
-            images: parsedImages,
-            // Ensure type compatibility
+            images: Array.isArray(parsedImages) ? parsedImages : [],
             type: p.type as any,
             category: p.category as any,
-            createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString()
-        };
+            createdAt: p.createdAt ? (typeof p.createdAt === 'string' ? p.createdAt : p.createdAt.toISOString()) : new Date().toISOString()
+        } as Property;
     });
 
-    // In-Memory Filtering
-    let filtered = allProperties.filter(p => {
-        if (type !== 'all' && p.type?.toLowerCase() !== type.toLowerCase()) return false;
-        if (category !== 'all' && p.category?.toLowerCase() !== category.toLowerCase()) return false;
-
-        if (cityId) {
-            // Check if property city matches Name OR ID (to handle legacy data)
-            const matchesName = cityFilterName ? p.city?.toLowerCase().includes(cityFilterName.toLowerCase()) : false;
-            const matchesId = p.city?.toLowerCase() === cityId.toLowerCase();
-            if (!matchesName && !matchesId) return false;
-        }
-
-        if (districtFilterName) {
-            // District search is loose on address
-            if (!p.address?.toLowerCase().includes(districtFilterName.toLowerCase())) return false;
-        }
-
-        if (price !== 'all') {
+    // In-Memory Filtering for complex price logic (since currency is separate)
+    if (price !== 'all') {
+        filtered = filtered.filter(p => {
             const pPrice = p.price;
             const unit = p.currency;
             let priceInBillion = pPrice;
@@ -110,26 +111,11 @@ export default async function ListingsPage({
                 case '3-5': if (priceInBillion < 1 || priceInBillion > 5) return false; break;
                 case 'over-5': if (priceInBillion <= 5) return false; break;
             }
-        }
-
-        return true;
-    });
+            return true;
+        });
+    }
 
     // Sorting
-    filtered.sort((a, b) => {
-        if (sort === 'newest') {
-            // Already sorted by DB fetch but filtering might scramble if we didn't preserve order? 
-            // DB fetch was orderBy createdAt desc.
-            return new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime();
-        } else if (sort === 'price-asc') {
-            return a.price - b.price; // Simplified
-        } else if (sort === 'price-desc') {
-            return b.price - a.price;
-        }
-        return 0;
-    });
-
-    // Better Sorting taking currency into account
     if (sort === 'price-asc' || sort === 'price-desc') {
         const getAbsPrice = (p: Property) => p.currency === 'Triệu' ? p.price / 1000 : p.price;
         filtered.sort((a, b) => {
@@ -138,6 +124,7 @@ export default async function ListingsPage({
             return sort === 'price-asc' ? priceA - priceB : priceB - priceA;
         });
     }
+    // 'newest' is already handled by DB orderBy
 
     // Pagination
     const postsPerPage = systemConfig.postsPerPage;
