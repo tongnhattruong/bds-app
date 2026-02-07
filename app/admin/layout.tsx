@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LayoutDashboard, PlusCircle, Settings, MapPin, List, LogOut, Newspaper, Users, FileText } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Settings, MapPin, List, LogOut, Newspaper, Users, FileText, Menu } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -74,6 +74,10 @@ export default function AdminLayout({
                         <Link href="/admin/pages" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-medium transition">
                             <FileText className="w-5 h-5" />
                             Quản lý trang tĩnh
+                        </Link>
+                        <Link href="/admin/menu" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-medium transition">
+                            <Menu className="w-5 h-5" />
+                            Quản lý Menu
                         </Link>
                         <Link href="/admin/locations" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-medium transition">
                             <MapPin className="w-5 h-5" />

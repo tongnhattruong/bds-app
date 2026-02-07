@@ -96,3 +96,11 @@ model District {
   name   String
   cityId String
 }
+model MenuItem {
+  id        String   @id @default(cuid())
+  label     String
+  url       String
+  order     Int      @default(0)
+  target    String   @default("_self") // '_self' or '_blank'
+  createdAt DateTime @default(now())
+}

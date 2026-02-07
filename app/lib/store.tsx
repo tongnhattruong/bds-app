@@ -106,6 +106,14 @@ export interface Page {
     updatedAt: string;
 }
 
+export interface MenuItem {
+    id: string;
+    label: string;
+    url: string;
+    order: number;
+    target: '_self' | '_blank';
+}
+
 interface BDSContextType {
     properties: Property[];
     addProperty: (property: Property) => Promise<boolean>;
@@ -138,6 +146,12 @@ interface BDSContextType {
 
     systemConfig: SystemConfig;
     updateSystemConfig: (config: SystemConfig) => Promise<boolean>;
+
+    menuItems: MenuItem[];
+    updateMenuItems: (items: MenuItem[]) => Promise<boolean>;
+    addMenuItem: (item: MenuItem) => Promise<boolean>;
+    deleteMenuItem: (id: string) => Promise<boolean>;
+
     fetchAllData: () => Promise<void>;
     isLoading: boolean;
 }
@@ -163,6 +177,7 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
     const [news, setNews] = useState<News[]>([]);
     const [newsCategories, setNewsCategories] = useState<NewsCategory[]>([]);
     const [pages, setPages] = useState<Page[]>([]);
+    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [systemConfig, setSystemConfig] = useState<SystemConfig>(initialSystemConfig);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -185,13 +200,15 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
                 { data: cits },
                 { data: dists },
                 { data: nws },
-                { data: pgs }
+                { data: pgs },
+                { data: mItems }
             ] = await Promise.all([
                 supabase.from('Property').select('*').order('createdAt', { ascending: false }),
                 supabase.from('City').select('*'),
                 supabase.from('District').select('*'),
                 supabase.from('News').select('*').order('createdAt', { ascending: false }),
-                supabase.from('Page').select('*').order('createdAt', { ascending: false })
+                supabase.from('Page').select('*').order('createdAt', { ascending: false }),
+                supabase.from('MenuItem').select('*').order('order', { ascending: true })
             ]);
 
             if (props) {
@@ -204,6 +221,7 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
             if (dists) setDistricts(dists);
             if (nws) setNews(nws);
             if (pgs) setPages(pgs);
+            if (mItems) setMenuItems(mItems);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -339,6 +357,29 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
         return true;
     };
 
+    const updateMenuItems = async (items: MenuItem[]) => {
+        // This is tricky with Supabase if we want to update all at once.
+        // For simplicity, we'll upsert them one by one or just use a loop.
+        const promises = items.map(item => supabase.from('MenuItem').upsert(item));
+        await Promise.all(promises);
+        fetchAllData();
+        return true;
+    };
+
+    const addMenuItem = async (item: MenuItem) => {
+        const { error } = await supabase.from('MenuItem').insert([item]);
+        if (error) return false;
+        fetchAllData();
+        return true;
+    };
+
+    const deleteMenuItem = async (id: string) => {
+        const { error } = await supabase.from('MenuItem').delete().eq('id', id);
+        if (error) return false;
+        fetchAllData();
+        return true;
+    };
+
     const filteredProperties = (filters: FilterParams) => {
         return properties.filter((property) => {
             if (filters.type && filters.type !== 'all' && property.type !== filters.type) return false;
@@ -379,7 +420,8 @@ export function BDSProvider({ children }: { children: React.ReactNode }) {
             cities, districts, addCity, deleteCity, addDistrict, deleteDistrict, getDistrictsByCity,
             news, newsCategories, addNews, updateNews, deleteNews, addNewsCategory, deleteNewsCategory,
             pages, addPage, updatePage, deletePage, getPageBySlug,
-            systemConfig, updateSystemConfig, fetchAllData, isLoading
+            systemConfig, updateSystemConfig, fetchAllData, isLoading,
+            menuItems, updateMenuItems, addMenuItem, deleteMenuItem
         }}>
             {children}
         </BDSContext.Provider>

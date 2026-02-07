@@ -9,7 +9,7 @@ import { useBDS } from '../lib/store';
 
 export default function BDSNavbar() {
     const { user, logout, isAuthenticated, isAdmin } = useAuth();
-    const { systemConfig } = useBDS();
+    const { systemConfig, menuItems } = useBDS();
 
     const logoText = systemConfig?.headerTitle || 'Bất Động Sản';
     const logoUrl = systemConfig?.logoUrl;
@@ -28,15 +28,30 @@ export default function BDSNavbar() {
                             <span className="font-bold text-xl text-blue-800">{logoText}</span>
                         </Link>
                         <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                            <Link href="/" className="inline-flex items-center px-1 pt-1 border-b-2 border-blue-500 text-sm font-medium text-gray-900">
-                                Trang chủ
-                            </Link>
-                            <Link href="/listings" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-700">
-                                Mua bán
-                            </Link>
-                            <Link href="/listings?type=rent" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-700">
-                                Cho thuê
-                            </Link>
+                            {menuItems.length > 0 ? (
+                                menuItems.map((item) => (
+                                    <Link
+                                        key={item.id}
+                                        href={item.url}
+                                        target={item.target}
+                                        className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-700"
+                                    >
+                                        {item.label}
+                                    </Link>
+                                ))
+                            ) : (
+                                <>
+                                    <Link href="/" className="inline-flex items-center px-1 pt-1 border-b-2 border-blue-500 text-sm font-medium text-gray-900">
+                                        Trang chủ
+                                    </Link>
+                                    <Link href="/listings" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-700">
+                                        Mua bán
+                                    </Link>
+                                    <Link href="/listings?type=rent" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-700">
+                                        Cho thuê
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
