@@ -270,14 +270,12 @@ export default function ListingsClient({ initialProperties, cities, districts, s
                                         sizes="(max-width: 768px) 100vw, 300px"
                                         priority={initialProperties.indexOf(property) < 4}
                                     />
-                                    {/* Secondary Image disabled for Ultra Light Test */}
-                                    <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
-                                        <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
-                                            {property.type === 'sale' ? 'Bán' : 'Cho thuê'}
-                                        </div>
-                                        <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                                            {property.images.length} ảnh
-                                        </div>
+                                    <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm z-10">
+                                        {property.type === 'sale' ? 'Bán' : 'Cho thuê'}
+                                    </div>
+                                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10">
+                                        {property.images.length} ảnh
+                                    </div>
                                 </Link>
 
                                 <div className="p-4 flex flex-col justify-between flex-1">
