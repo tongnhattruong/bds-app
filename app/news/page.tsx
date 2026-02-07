@@ -1,6 +1,7 @@
 'use client';
 
 import { useBDS } from '../lib/store';
+import { useAuth } from '../lib/auth';
 import Link from 'next/link';
 import { Calendar, User, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -8,7 +9,11 @@ import SEOHead from '../components/SEOHead';
 
 export default function NewsPage() {
     const { news, newsCategories, systemConfig } = useBDS();
+    const { user } = useAuth();
     const [activeCategory, setActiveCategory] = useState('all');
+
+    // Tên người đăng hiển thị: Ưu tiên Hồ sơ cá nhân > Cấu hình hệ thống > Ban Biên Tập
+    const authorDisplayName = user?.name || systemConfig?.defaultContactName || 'Ban Biên Tập';
     const [currentPage, setCurrentPage] = useState(1);
 
     // Reset pagination when category changes
@@ -109,7 +114,7 @@ export default function NewsPage() {
                                                 <Calendar className="w-4 h-4" /> {new Date(featuredNews.createdAt).toLocaleDateString('vi-VN')}
                                             </span>
                                             <span className="flex items-center gap-1">
-                                                <User className="w-4 h-4" /> {featuredNews.author}
+                                                <User className="w-4 h-4" /> {authorDisplayName}
                                             </span>
                                         </div>
                                         <Link href={`/news/${featuredNews.id}`} className="text-blue-600 font-bold flex items-center gap-1 hover:gap-2 transition-all">
@@ -148,6 +153,9 @@ export default function NewsPage() {
                                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
                                     <span className="text-xs text-gray-400 flex items-center gap-1">
                                         <Calendar className="w-3 h-3" /> {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                                    </span>
+                                    <span className="text-xs text-gray-400 flex items-center gap-1 ml-4 mr-auto">
+                                        <User className="w-3 h-3" /> {authorDisplayName}
                                     </span>
                                     <Link href={`/news/${item.id}`} className="text-sm font-bold text-blue-600 hover:text-blue-800">
                                         Xem chi tiết
