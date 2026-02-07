@@ -61,14 +61,25 @@ export default async function ListingsPage({
     });
 
     // Transform to Interface format (images JSON parsing)
-    const allProperties: Property[] = allPropertiesRaw.map((p: any) => ({
-        ...p,
-        images: JSON.parse(p.images),
-        // Ensure type compatibility
-        type: p.type as any,
-        category: p.category as any,
-        createdAt: p.createdAt.toISOString()
-    }));
+    const allProperties: Property[] = allPropertiesRaw.map((p: any) => {
+        let parsedImages = [];
+        try {
+            parsedImages = p.images ? JSON.parse(p.images) : [];
+            if (!Array.isArray(parsedImages)) parsedImages = [];
+        } catch (e) {
+            console.error(`Error parsing images for property ${p.id}:`, e);
+            parsedImages = [];
+        }
+
+        return {
+            ...p,
+            images: parsedImages,
+            // Ensure type compatibility
+            type: p.type as any,
+            category: p.category as any,
+            createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString()
+        };
+    });
 
     // In-Memory Filtering
     let filtered = allProperties.filter(p => {
